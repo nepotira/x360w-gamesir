@@ -68,6 +68,9 @@ nvram boot-args="amfi_get_out_of_my_way=1"
 > from the same recovery terminal. Full guide + rollback + alternatives:
 > [docs/INSTALL.md](docs/INSTALL.md) · [中文文档](docs/INSTALL.zh-CN.md)
 
+### 🍎 Hackintosh Users & DRM (Netflix / Apple TV)
+Running on a Hackintosh with OpenCore? Read the complete **[Hackintosh & DRM Guide](docs/HACKINTOSH.md)** explaining how to set up `boot-args` (`amfi_get_out_of_my_way=1` + `unfairgva=1`), background autostart, and having 1080p Netflix in Safari alongside zero-latency xCloud in Chrome without DRM conflicts!
+
 Daily use / autostart:
 
 ```bash
