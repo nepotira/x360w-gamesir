@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "GameSir & Xbox 360 WebUSB Bridge",
+  "version": "1.0.0",
+  "description": "Conecta o GameSir Nova Lite 2.4G e controles Xbox 360 direto no xCloud e navegadores via WebUSB sem desativar AMFI (compatível com Netflix).",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "GameSir Nova Lite Controller Bridge"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.xbox.com/*",
+        "https://xbox.com/*",
+        "https://hardwaretester.com/*",
+        "https://gamepad-tester.com/*",
+        "https://play.geforcenow.com/*",
+        "https://luna.amazon.com/*"
+      ],
+      "js": ["content/inject.js"],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://www.xbox.com/*",
+        "https://xbox.com/*",
+        "https://hardwaretester.com/*",
+        "https://gamepad-tester.com/*",
+        "https://play.geforcenow.com/*",
+        "https://luna.amazon.com/*"
+      ],
+      "js": ["content/bridge.js"],
+      "run_at": "document_start",
+      "world": "ISOLATED",
+      "all_frames": true
+    }
+  ]
+}

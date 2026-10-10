@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>GameSir WebUSB Bridge</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="title-row">
+        <span class="icon">🎮</span>
+        <h2>GameSir Nova Lite</h2>
+      </div>
+      <span class="badge" id="status-badge">Desconectado</span>
+    </div>
+
+    <p class="desc">Ponte WebUSB direta para xCloud sem precisar desativar o AMFI no macOS.</p>
+
+    <button id="btn-connect" class="btn primary">
+      Conectar GameSir (Dongle 2.4G)
+    </button>
+
+    <div class="monitor" id="monitor-box">
+      <div class="metric-row">
+        <span class="label">Dispositivo:</span>
+        <span class="val" id="dev-name">Nenhum</span>
+      </div>
+      <div class="metric-row">
+        <span class="label">Pacotes:</span>
+        <span class="val" id="packet-count">0</span>
+      </div>
+      <div class="metric-row">
+        <span class="label">Gatilhos:</span>
+        <span class="val" id="triggers-val">LT: 0 | RT: 0</span>
+      </div>
+      <div class="metric-row">
+        <span class="label">Analógicos:</span>
+        <span class="val" id="sticks-val">E: 0, 0 | D: 0, 0</span>
+      </div>
+      <div class="metric-row">
+        <span class="label">Botões:</span>
+        <span class="val" id="buttons-val">-</span>
+      </div>
+    </div>
+
+    <div class="footer-note">
+      ✅ Compatível com Netflix e Apple Silicon (M1/M2/M3/M4 e Hackintosh).
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

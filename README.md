@@ -1,132 +1,101 @@
-# x360w — Xbox 360 & GameSir Nova Lite Driver for modern macOS
+# x360w — Xbox 360 & GameSir Nova Lite Driver & WebUSB Extension for macOS
 
 ![x360w](docs/social-card.png)
 
 > ℹ️ **Fork Notice & Enhancements:**  
 > This project is an enhanced fork of the original [x360w](https://github.com/古董修复师/x360w) by **古董修复师**.  
 > This fork adds:
-> - 🎮 **GameSir Nova Lite 2.4G Dongle Support** (VID `0x3537`, PID `0x1040` & `0x3151:0x3020`) and standard 20-byte wired XInput reports.
+> - 🎮 **GameSir Nova Lite 2.4G Dongle Support** (VID `0x3537`, PID `0x1040` & `0x3151:0x3020`) with 20-byte XInput packet decoding at ~240 Hz.
+> - 🌐 **Google Chrome WebUSB Extension (Modo A)**: Run the controller directly in Google Chrome (xCloud, GeForce NOW) with **AMFI 100% active and Netflix / Widevine DRM fully working**!
 > - 🍎 **macOS Tahoe / 26+ Compatibility Fixes**: Fixed `SIGSEGV` crash in `vhid.c` caused by incorrect pointer dereference of `dlsym` dictionary callbacks.
 > - ⚡ **Thread Race Condition Fix**: Eliminates instant false-disconnects on fast multi-core systems.
 > - 🔄 **USB Pipe-Stall Auto Recovery**: Automatically clears halt states (`LIBUSB_ERROR_PIPE`) on the interrupt endpoints.
 > - 🛠️ **Zero-Xcode Build Toolchain**: Compiles with standalone Zig (`zig cc`) without requiring Apple Xcode or Command Line Tools.
 
-Use your **GameSir Nova Lite (via 2.4G USB Dongle)** or **original Xbox 360 controllers** (wireless receiver `045e:0291` / `0719` / `02a9` or wired `045e:028e`) on **macOS 13 → 26+ (Apple Silicon & Intel / Hackintosh)** — no kernel extensions needed!
+Use your **GameSir Nova Lite (via 2.4G USB Dongle)** or **original Xbox 360 controllers** (wireless receiver `045e:0291` / `0719` / `02a9` or wired `045e:028e`) on **macOS 13 → 26+ (Apple Silicon & Intel / Hackintosh)**!
 
-It is the spiritual successor to the abandoned [360Controller](https://github.com/360Controller/360Controller) kext driver, rewritten for modern macOS: **libusb userspace USB I/O + IOHIDUserDevice virtual gamepads**.
+---
 
-## Features
+## 🚀 Escolha o seu Modo de Uso
 
-- 🎮 **Full controller support** — GameSir Nova Lite 2.4G, Xbox 360 Wireless & Wired, buttons, D-Pad, analog sticks, analog triggers, auto-reconnect
-- 🖥️ **Two output identities**
-  - **DualSense clone (default)** — a bit-exact Sony DualSense (`054c:0ce6`, official 273-byte USB descriptor). Visible to **GameController.framework / System Settings / Xbox Cloud Gaming (xCloud) / Chrome / Safari / Edge / Unity & native Mac games**.
-  - **Generic gamepad** (`--identity generic`) — 16 buttons + hat + 6 axes. Best for SDL/emulators/browser Gamepad API.
-- 🔁 **Rumble** — HID output reports forwarded to controller motors
-- 🪶 **No kext, no DriverKit** — single standalone lightweight C binary, `launchd`-friendly
-- 🔎 **Built-in live dashboard** for debugging (`-v` for raw packet hex)
+| Recurso | Modo A: Extensão Chrome (WebUSB) | Modo B: Driver Nativo (`x360w`) |
+| :--- | :---: | :---: |
+| **Onde roda** | Google Chrome (xCloud, GeForce NOW, web games) | Sistema macOS global (Steam, Emuladores, Unity) |
+| **Compatibilidade** | **Universal** (Apple Silicon M1/M2/M3/M4 & Hackintosh) | Hackintosh (OpenCore) ou Mac com AMFI configurado |
+| **Netflix no Chrome** | ✅ **100% Funcional** (Widevine DRM intacto) | ✅ **Funcional com AMFIPass** (sem `amfi_get_out_of_my_way`) |
+| **Requer modificar EFI/Kernel** | ❌ **NÃO** (zero modificações no sistema) | Sim (requer AMFIPass / boot-args) |
+| **Instalação** | Carregar pasta `chrome-extension` no Chrome | Compilar ou executar `x360w-signed` |
 
-## Why a DualSense clone?
+---
 
-macOS GameController.framework (what System Settings → Game Controllers and
-Unity/native games use) deliberately ignores user-space virtual HID devices.
-Cloning the identity and descriptor of a **real, natively supported controller**
-makes the virtual device a first-class citizen — verified on macOS 26.5 (Tahoe):
-System Settings shows it as connected and Unity titles (e.g. DAVE THE DIVER)
-are playable, rumble included. Games will show PlayStation glyphs
-(A=✕ B=○ X=□ Y=△).
+### 🟢 Modo A: Google Chrome WebUSB Extension (Recomendado para xCloud & Netflix)
 
-## Screenshots
+Se você joga principalmente pelo **Xbox Cloud Gaming (xCloud)** ou no navegador e não quer abrir mão de assistir **Netflix em 1080p** no Chrome:
 
-| System Settings → Game Controllers | Live terminal dashboard |
+1. Abra o **Google Chrome** e acesse `chrome://extensions`.
+2. Ative o **Modo do desenvolvedor** no canto superior direito.
+3. Clique em **Carregar sem compactação** e selecione a pasta `chrome-extension` deste repositório.
+4. Conecte o dongle USB 2.4 GHz e ligue o GameSir Nova Lite (`Home + X`, LED verde).
+5. Clique no ícone da extensão no Chrome e clique em **Conectar GameSir**.
+6. Pronto! Acesse o [Xbox Cloud Gaming](https://www.xbox.com/play) ou o [Gamepad Tester](https://hardwaretester.com/gamepad).
+
+👉 Leia o guia completo em [chrome-extension/README.md](chrome-extension/README.md).
+
+---
+
+### 🔵 Modo B: Driver Nativo de Sistema (DualSense / IOHIDUserDevice)
+
+Para quem precisa do controle funcionando em jogos instalados fora do navegador (Steam, Ryujinx, RPCS3, Dolphin, RetroArch):
+
+1. **Compilar e Assinar:**
+   ```bash
+   bash scripts/build.sh
+   sudo codesign --force --deep --sign - --entitlements entitlements.plist x360w-signed
+   sudo xattr -cr x360w-signed
+   ```
+2. **Executar:**
+   ```bash
+   ./x360w-signed
+   ```
+3. **Hackintosh Users:**  
+   Consulte nosso guia detalhado em **[docs/HACKINTOSH.md](docs/HACKINTOSH.md)** para saber como utilizar o `AMFIPass.kext` e manter o Widevine do Chrome ativo.
+
+---
+
+## 🕹️ Funcionalidades do Driver Nativo
+
+- 🎮 **Suporte Completo** — GameSir Nova Lite 2.4G, Xbox 360 Wireless & Wired, botões, D-Pad, analógicos, gatilhos analógicos e reconexão automática.
+- 🖥️ **Duas Identidades de Saída**
+  - **Clone DualSense (Padrão)** — Sony DualSense exato (`054c:0ce6`, descritor USB oficial de 273 bytes). Reconhecido nativamente pelo `GameController.framework`, Ajustes do Sistema e jogos da App Store/Steam.
+  - **Gamepad Genérico** (`--identity generic`) — 16 botões + hat + 6 eixos.
+- 🔁 **Vibração (Rumble)** — Saídas HID encaminhadas aos motores do controle.
+- 🪶 **Sem kexts ou DriverKit** — Binário em C leve em espaço de usuário, pronto para `launchd`.
+
+---
+
+## 📸 Screenshots
+
+| Ajustes do Sistema → Controles | Dashboard ao Vivo no Terminal |
 |---|---|
 | ![DualSense connected in System Settings](docs/screenshot-settings.png) | ![x360w live dashboard](docs/screenshot-dashboard.png) |
 
-## Quick start
+---
 
-```bash
-# 1. build (needs Xcode CLT + `brew install libusb`)
-scripts/build.sh        # produces ./x360w and ./x360w-signed
+## 📂 Estrutura do Repositório
 
-# 2. USB-only dashboard — works with zero system changes
-./x360w
+```text
+chrome-extension/  Extensão Manifest V3 para Google Chrome (Modo A WebUSB)
+src/               x360w.c (USB + protocolo) · vhid.c/h (HID virtual) · ds_desc.h
+docs/              Guias detalhados (HACKINTOSH.md, INSTALL.md)
+scripts/           build.sh (compilação independente) · verify.sh
+packaging/         com.x360w.driver.plist (serviço de inicialização launchd)
 ```
 
-For a **system-wide gamepad** macOS requires the managed entitlement
-`com.apple.developer.hid.virtual.device`. The community-standard way for
-personal use is to relax AMFI's entitlement enforcement **once**
-(SIP stays enabled), then use the ad-hoc-signed binary:
+---
 
-```bash
-# Apple Silicon: shut down → hold power → Options → Terminal:
-nvram boot-args="amfi_get_out_of_my_way=1"
-# reboot, then:
-./x360w-signed
-```
+## 📄 Licença e Créditos
 
-> ⚠️ This lets any ad-hoc-signed binary carry restricted entitlements.
-> Understand the trade-off before applying; revert with `nvram -d boot-args`
-> from the same recovery terminal. Full guide + rollback + alternatives:
-> [docs/INSTALL.md](docs/INSTALL.md) · [中文文档](docs/INSTALL.zh-CN.md)
-
-### 🍎 Hackintosh Users & DRM (Netflix / Apple TV)
-Running on a Hackintosh with OpenCore? Read the complete **[Hackintosh & DRM Guide](docs/HACKINTOSH.md)** explaining how to set up `boot-args` (`amfi_get_out_of_my_way=1` + `unfairgva=1`), background autostart, and having 1080p Netflix in Safari alongside zero-latency xCloud in Chrome without DRM conflicts!
-
-Daily use / autostart:
-
-```bash
-cp packaging/com.x360w.driver.plist ~/Library/LaunchAgents/  # edit path inside
-launchctl load ~/Library/LaunchAgents/com.x360w.driver.plist
-```
-
-## Architecture
-
-```
-Xbox 360 Wireless Receiver (USB, FF/5D/81 × 4 slots)
-   │  libusb interrupt transfers, one thread per slot
-   ▼
-Protocol decode (presence / input reports — Linux xpad.c wire format)
-   │  buttons · dpad · sticks · triggers
-   ▼
-IOHIDUserDevice virtual gamepad (per connected controller)
-   ├─ DualSense clone (default) → GameController / System Settings / Unity
-   └─ Generic gamepad           → SDL / emulators / browser Gamepad API
-   ▼
-Rumble: HID output report → set-report callback → receiver rumble command
-```
-
-## Repo layout
-
-```
-src/        x360w.c (USB + protocol + dashboard) · vhid.c/h (virtual HID) · ds_desc.h
-tests/      smoke & probe tools used to validate each layer (see docs)
-scripts/    build.sh (compile + ad-hoc sign) · verify.sh (post-AMFI check)
-packaging/  launchd agent plist
-docs/       install guides (EN / 中文)
-```
-
-## Protocol cheatsheet (wireless)
-
-- One USB interface per controller slot (`bInterfaceClass FF / SubClass 5D / Protocol 81`)
-- IN: `data[0]&0x08` → presence change, `data[1]&0x80`=present `0x40`=headset;
-  `data[1]==0x01` → input report starting at `data[4]` (wired-360 layout)
-- OUT (12 B): LED `{00 00 08 40+mode}` · rumble `{00 01 0F C0 00 strong weak}`
-  · presence query `{08 00 0F C0}` · power off `{00 00 08 C0}`
-
-## Compatibility
-
-| Consumer | DualSense mode | Generic mode |
-|---|---|---|
-| System Settings → Game Controllers | ✅ | ❌ (Apple filter) |
-| Unity / native GCController games | ✅ | ❌ |
-| Steam / SDL games / OpenEmu / Dolphin | ✅ | ✅ |
-| Browser Gamepad API | ✅ | ✅ |
-| Rumble | ✅ | ✅ |
-
-Tested: M4 Max, macOS 26.5.2, receiver `045e:0719`, original Xbox 360 controller.
-
-## License & credits
-
-MIT (see [LICENSE](LICENSE)). Protocol knowledge from Linux `xpad.c`;
-DualSense descriptor/protocol from @nondebug's documentation; AMFI flow
-pioneered by Lumen; research groundwork by X360MacOSReceiverBridge.
-Full attributions in [NOTICE](NOTICE).
+Distribuído sob a licença MIT (consulte [LICENSE](LICENSE)).  
+Projeto baseado no [x360w](https://github.com/古董修复师/x360w) de **古董修复师**.  
+Conhecimento de protocolo derivado do `xpad.c` do Linux; descritor DualSense documentado por @nondebug; pesquisas de AMFI por Lumen e X360MacOSReceiverBridge.  
+Consulte todas as atribuições em [NOTICE](NOTICE).

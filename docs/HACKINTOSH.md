@@ -1,122 +1,117 @@
-# Guia Definitivo: GameSir Nova Lite / Xbox 360 no Hackintosh (macOS 13 → 26+)
-## Como conciliar Gamepad Virtual, xCloud e Netflix/DRM sem conflitos
+# Guia Definitivo: GameSir Nova Lite / Xbox 360 no macOS e Hackintosh
+## Como usar o controle, xCloud e Netflix/DRM ao mesmo tempo (Modo A e Modo B)
 
-Este adendo documenta a arquitetura e o passo a passo completo para utilizar o **GameSir Nova Lite (via Dongle 2.4GHz)** ou **Controles Xbox 360** no **Hackintosh** (OpenCore, macOS Ventura, Sonoma, Sequoia e Tahoe), mantendo serviços de streaming protegidos por DRM (como **Netflix, Apple TV e Prime Video**) 100% funcionais.
-
----
-
-### 1. Entendendo o Problema Técnico no Hackintosh
-
-Para que o macOS reconheça um controle sem fio de terceiros vindo por USB no navegador e no sistema como um controle nativo (DualSense/Xbox), o driver utiliza a API **`IOHIDUserDevice`**.
-
-1. **A Restrição do AMFI (Apple Mobile File Integrity):**
-   * A Apple restringe a criação de dispositivos virtuais através do entitlement privado `com.apple.developer.hid.virtual.device`.
-   * Binários com assinatura Ad-Hoc (`codesign -s -`) que declaram essa permissão são sumariamente encerrados pelo kernel com o erro **`Killed: 9` (SIGKILL)** se o AMFI estiver em modo estrito.
-   * A solução padrão da comunidade é relaxar a checagem com o argumento de inicialização:  
-     `amfi_get_out_of_my_way=1` nos `boot-args` do OpenCore.
-
-2. **O Efeito Colateral no Google Chrome (Widevine DRM):**
-   * Ao relaxar o AMFI (`amfi_get_out_of_my_way=1`), o macOS desativa globalmente a **Validação de Bibliotecas (*Library Validation*)**.
-   * O **Google Chrome** utiliza o módulo **Widevine CDM** para reproduzir conteúdos protegidos da Netflix, Spotify e outros. O Widevine exige validação estrita de bibliotecas na memória para evitar interceptação do fluxo de vídeo descriptografado.
-   * Consequentemente, a Netflix no Chrome apresentará erros de reprodução (ex: `D7361-1253` ou falha ao carregar o componente).
+Este documento detalha as duas soluções definitivas para fazer o **GameSir Nova Lite (via Dongle USB 2.4 GHz)** ou **controles Xbox 360** funcionarem no **macOS** (macOS 13 Ventura até macOS 15+ Sequoia / 16+ Tahoe) com **zero conflito de DRM com a Netflix, Prime Video ou Spotify**.
 
 ---
 
-### 2. A Solução Arquitetural: O "Dueto" Safari + Chrome
+## 📌 O Diagnóstico Técnico: Por que a Netflix e o Driver entravam em conflito?
 
-A solução mais elegante, limpa e estável no Hackintosh divide as tarefas entre as tecnologias nativas de cada navegador:
+Para que um driver de terceiros crie um controle virtual no macOS (DualSense / Xbox) reconhecido pelo sistema, ele usa a API nativa da Apple **`IOHIDUserDevice`**.
 
-* **Para Jogos (xCloud / GeForce NOW / Navegadores):**  
-  Utilize o **Google Chrome** ou **Microsoft Edge**. O driver `x360w` emula perfeitamente um controle DualSense virtual. O Chrome comunica-se com o `GameController.framework` com latência zero e suporte total a gatilhos analógicos e vibração.
-  
-* **Para Streaming (Netflix / Apple TV / Prime Video):**  
-  Utilize o **Safari**.  
-  **Por que funciona?** O Safari **NÃO** utiliza o plugin Widevine da Google. Ele utiliza o DRM proprietário da Apple (**Apple FairPlay**), decodificado diretamente pelo hardware da placa de vídeo integrada (Intel QuickSync / WhateverGreen).  
-  O FairPlay **não depende** da validação de bibliotecas do AMFI. Portanto, no Safari a Netflix roda em **1080p Full HD real** (com bitrate superior ao Chrome), áudio multicanal e aceleração gráfica completa, mesmo com o `amfi_get_out_of_my_way=1` ativo!
+1. **A barreira do AMFI (Apple Mobile File Integrity):**
+   * A Apple exige o entitlement privado `com.apple.developer.hid.virtual.device`.
+   * Sem assinatura paga da Apple, o kernel encerra o processo com o erro **`Killed: 9` (SIGKILL)** se o AMFI estiver estrito.
+   * A solução clássica em Hackintoshes era colocar o argumento `amfi_get_out_of_my_way=1` nos `boot-args` do OpenCore.
+2. **A quebra do Widevine DRM no Google Chrome:**
+   * O boot-arg `amfi_get_out_of_my_way=1` desliga completamente a **Validação de Bibliotecas (*Library Validation*)** do macOS.
+   * O módulo **Widevine CDM** do Google Chrome se recusa a inicializar ou descriptografar fluxos DRM quando a validação de bibliotecas está desativada, disparando o erro **`M7702-1003`** na Netflix.
+3. **A limitação do Safari em Hackintoshes Intel:**
+   * No Safari, a Netflix usa o **Apple FairPlay** em vez de Widevine. Em Hackintoshes com iGPU Intel de 10ª geração (Comet Lake) sem chip de segurança T2 e sem placa de vídeo dedicada suportada, o FairPlay falha com o erro **`S7706`**.
+   * **Conclusão:** A Netflix **precisa** rodar dentro do **Google Chrome**.
+
+Para atender a todos os cenários, implementamos duas soluções completas:
 
 ---
 
-### 3. Passo a Passo Completo de Instalação no OpenCore
+## 🟢 MODO A: A Extensão Chrome WebUSB (Recomendada para xCloud & Netflix)
+> **Compatibilidade:** Macs Apple Silicon reais (M1, M2, M3, M4) e Hackintoshes (Intel/AMD).  
+> **Segurança:** AMFI 100% ativo, integridade do sistema 100% preservada.
 
-#### Passo 1: Ajustar os `boot-args` na EFI do OpenCore
+### O que é?
+Uma extensão Manifest V3 para Google Chrome que lê o dongle USB 2.4 GHz do GameSir Nova Lite diretamente do espaço do usuário através da API **WebUSB** (`navigator.usb`).
 
-1. Monte a sua partição EFI (`diskutil mount disk0s1` ou via OpenCore Configurator / MountEFI).
-2. Abra o arquivo `EFI/OC/config.plist` em um editor de texto ou editor de Plist.
-3. Navegue até:  
+* O macOS não captura a interface USB do protocolo Xbox 360 / GameSir por padrão (`Class 0xFF, SubClass 0x5D`).
+* O Google Chrome tem permissão nativa para abrir a interface USB e ler os pacotes de 20 bytes do controle a mais de 120–240 Hz.
+* A extensão traduz os dados brutos e injeta um controle padrão W3C (`navigator.getGamepads()`) diretamente no **Xbox Cloud Gaming (xCloud)**, **GeForce NOW**, **Amazon Luna** e sites de teste.
+* **Vantagem Absoluta:** O AMFI permanece **100% ativado**. A validação de bibliotecas fica ativa, permitindo assistir à **Netflix em 1080p Full HD no Google Chrome** enquanto você joga seus jogos no xCloud!
+
+### Como Instalar e Usar o Modo A:
+1. Abra o **Google Chrome** e acesse:
+   ```text
+   chrome://extensions
+   ```
+2. No canto superior direito, ative a opção **"Modo do desenvolvedor"** (*Developer mode*).
+3. Clique em **"Carregar sem compactação"** (*Load unpacked*).
+4. Selecione a pasta:
+   ```text
+   /Users/nepo/x360w/chrome-extension
+   ```
+5. Conecte o dongle USB 2.4 GHz e ligue o GameSir Nova Lite com `Home + X` (LED verde).
+6. Clique no ícone da extensão no Chrome e clique no botão **"Conectar GameSir (Dongle 2.4G)"**.
+7. Selecione o dispositivo na lista de dispositivos USB e clique em **Conectar**.
+8. Abra o [Xbox Cloud Gaming](https://www.xbox.com/play) ou o [Gamepad Tester](https://hardwaretester.com/gamepad) e jogue imediatamente!
+
+---
+
+## 🔵 MODO B: Driver Nativo de Sistema com AMFIPass (Para Hackintosh & Jogos Fora do Navegador)
+> **Compatibilidade:** Hackintosh OpenCore.  
+> **Finalidade:** Jogos fora do navegador (Steam, Ryujinx, RPCS3, Dolphin, RetroArch) que exigem o controle reconhecido como gamepad global no macOS.
+
+### O que é?
+Em vez de desativar o AMFI de forma agressiva com `amfi_get_out_of_my_way=1`, o OpenCore utiliza a kext **`AMFIPass.kext` (v1.4.1+)** desenvolvida pela equipe do Dortania/Acidanthera.
+
+* O `AMFIPass.kext` permite a execução de binários locais que precisam de privilégios de sistema enquanto **mantém o AMFI ativo** para as aplicações de espaço de usuário (como o Google Chrome).
+* Isso preserva o *Library Validation* do Chrome, permitindo que o Widevine funcione sem erros.
+
+### Como Configurar o OpenCore para o Modo B:
+
+#### 1. Verificar a presença da Kext
+Certifique-se de que a kext `AMFIPass.kext` está presente em:
+```text
+EFI/OC/Kexts/AMFIPass.kext
+```
+E declarada como habilitada no seu `EFI/OC/config.plist` sob `Kernel -> Add`.
+
+#### 2. Ajustar os `boot-args` no `config.plist`
+1. No seu `config.plist`, navegue até:  
    `NVRAM` → `Add` → `7C436110-AB2A-4BBB-A880-FE41995C9F82` → `boot-args`.
-4. Adicione os dois argumentos essenciais:
-   * **`amfi_get_out_of_my_way=1`**: Permite que o driver crie o gamepad virtual ad-hoc (`IOHIDUserDevice`) sem sofrer `Killed: 9`.
-   * **`unfairgva=1`**: Ativa a decodificação de hardware do DRM FairPlay 1.x da Apple para GPUs Intel (WhateverGreen), garantindo reprodução fluida no Safari.
-
-   *Exemplo de linha de `boot-args`:*
-   ```xml
-   <key>boot-args</key>
-   <string>keepsyms=1 debug=0x100 unfairgva=1 amfi_get_out_of_my_way=1</string>
+2. **REMOVA** o argumento prejudicial:
+   ```text
+   amfi_get_out_of_my_way=1   <--- REMOVER ESTE ARGUMENTO!
    ```
-5. Salve o `config.plist` e desmonte a partição EFI.
+3. Seus `boot-args` devem conter o `-amfipassbeta` (ou nenhum argumento especial de AMFI, já que a versão 1.4.1+ cuida de tudo automaticamente).
+4. Salve o `config.plist` e reinicie o computador.
 
----
-
-#### Passo 2: Compilar e Assinar o Driver (Sem necessidade de Xcode)
-
-O projeto foi adaptado para compilar diretamente usando o compilador standalone **Zig C Compiler** (`zig cc`), sem precisar dos gigabytes do Xcode ou do instalador de Command Line Tools da Apple:
-
+#### 3. Assinar o Binário do Driver Localmente
+No terminal do macOS, assine o executável com a lista de entitlements:
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/nepotira/x360w-gamesir.git ~/x360w
 cd ~/x360w
-
-# 2. Compile e assine o binário (gera x360w e x360w-signed)
-bash scripts/build.sh
+sudo codesign --force --deep --sign - --entitlements entitlements.plist x360w-signed
+sudo xattr -cr x360w-signed
 ```
 
-O script `scripts/build.sh` realiza a compilação otimizada (`-O2`) e injeta o entitlement via assinatura Ad-Hoc:
+#### 4. Executar o Driver
 ```bash
-codesign -s - --entitlements entitlements.plist -f x360w-signed
+~/x360w/x360w-signed
 ```
+O driver assumirá o dongle USB e instanciará o controle virtual `IOHIDUserDevice` (DualSense), liberando o controle para qualquer jogo nativo no macOS.
 
 ---
 
-#### Passo 3: Configurar Inicialização Automática em Segundo Plano (`launchd`)
+## 📊 Comparativo Rápido dos Modos
 
-Para não precisar abrir o Terminal toda vez que ligar o computador ou for jogar:
-
-1. Copie o arquivo de serviço para a pasta de agentes do usuário:
-   ```bash
-   cp ~/x360w/com.x360w.driver.plist ~/Library/LaunchAgents/
-   ```
-
-2. Carregue o serviço no sistema operacional:
-   ```bash
-   launchctl load ~/Library/LaunchAgents/com.x360w.driver.plist
-   ```
-
-O serviço agora roda silenciosamente em segundo plano:
-* Se o dongle estiver desconectado, o driver aguarda sem consumir CPU.
-* Quando você espetar o dongle USB ou ligar o controle, o driver assume a porta, instancia o DualSense virtual e encaminha todos os botões e analógicos a 240 Hz.
-* Se você desligar o controle, o driver volta ao modo de espera automaticamente.
-* Logs de diagnóstico são gravados em `/tmp/x360w.log`.
+| Recurso | Modo A (Extensão Chrome) | Modo B (Driver Nativo + AMFIPass) | Modo Legado (amfi_get_out_of_my_way) |
+| :--- | :---: | :---: | :---: |
+| **xCloud no Google Chrome** | ✅ Sim | ✅ Sim | ✅ Sim |
+| **Netflix no Google Chrome** | ✅ Sim (1080p) | ✅ Sim (1080p) | ❌ Quebra (M7702-1003) |
+| **Netflix no Safari (iGPU Intel)** | ❌ Falha (S7706) | ❌ Falha (S7706) | ❌ Falha (S7706) |
+| **Jogos Nativos fora do Chrome (Steam)** | ❌ Não | ✅ Sim | ✅ Sim |
+| **Compatível com Apple Silicon (M1..M4)** | ✅ Sim | ❌ Não (exige kext/SIP off) | ❌ Não |
+| **Exige alterar EFI / OpenCore** | ❌ Não | ✅ Sim | ✅ Sim |
 
 ---
 
-### 4. Validação e Testes
-
-1. **Reinicie o Hackintosh** para aplicar os novos `boot-args`.
-2. **Conecte o Dongle:** Insira o receptor USB 2.4GHz e ligue o GameSir Nova Lite (`Home + X` para modo Dongle/Verde).
-3. **Teste do Controle:**  
-   Abra o **Google Chrome** e acesse [hardwaretester.com/gamepad](https://hardwaretester.com/gamepad). Pressione qualquer botão: o controle surgirá instantaneamente como um gamepad totalmente funcional.
-4. **Teste de Streaming:**  
-   Abra o **Safari** e reproduza qualquer filme ou série na **Netflix**. O vídeo iniciará imediatamente em 1080p Full HD com aceleração gráfica ativa.
-
----
-
-### 5. Perguntas Frequentes & Diagnóstico (Troubleshooting)
-
-* **O driver fecha com `Killed: 9`:**  
-  O argumento `amfi_get_out_of_my_way=1` não foi aplicado pelo OpenCore. Verifique com o comando `nvram boot-args` no Terminal se ele consta na lista ativa. Se não constar, revise o `config.plist` e limpe a NVRAM no boot do OpenCore (*Reset NVRAM*).
-
-* **A porta USB diz "Erro ao abrir dispositivo / LIBUSB_ERROR_ACCESS":**  
-  A Steam ou outro aplicativo pode estar monopolizando a interface USB do receptor. Feche a Steam temporariamente ou aguarde alguns segundos: o driver possui reconexão automática e assumirá a porta assim que for liberada.
-
-* **O dongle não é detectado pelo sistema:**  
-  Certifique-se de que o mapeamento de portas USB do seu Hackintosh (`USBToolBox.kext` / `UTBMap.kext` ou `USBPorts.kext`) está mapeando corretamente a porta física onde o dongle foi inserido como `Internal` (255) ou `USB 2.0` (0).
+## 🛠️ Resumo das Decisões
+- Se o seu objetivo principal é jogar **xCloud / Navegador** e assistir **Netflix** na mesma máquina: use o **Modo A**. É a solução mais moderna, não mexe na EFI e é imune a atualizações do macOS.
+- Se você joga **emuladores ou jogos da Steam** fora do navegador: configure o OpenCore conforme o **Modo B** com `AMFIPass.kext`.
