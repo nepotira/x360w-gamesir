@@ -20,7 +20,7 @@ Use your **GameSir Nova Lite (via 2.4G USB Dongle)** or **original Xbox 360 cont
 
 | Recurso | Modo A: Extensão Chrome (WebUSB) | Modo B: Driver Nativo (`x360w`) |
 | :--- | :---: | :---: |
-| **Onde roda** | Google Chrome (xCloud, GeForce NOW, web games) | Sistema macOS global (Steam, Emuladores, Unity) |
+| **Onde roda** | Google Chrome (xCloud, GeForce NOW, web games) | Sistema macOS global (Emuladores, Unity, jogos nativos) |
 | **Compatibilidade** | **Universal** (Apple Silicon M1/M2/M3/M4 & Hackintosh) | Hackintosh (OpenCore) ou Mac com AMFI configurado |
 | **Netflix no Chrome** | ✅ **100% Funcional** (Widevine DRM intacto) | ✅ **Funcional com AMFIPass** (sem `amfi_get_out_of_my_way`) |
 | **Requer modificar EFI/Kernel** | ❌ **NÃO** (zero modificações no sistema) | Sim (requer AMFIPass / boot-args) |
@@ -45,7 +45,7 @@ Se você joga principalmente pelo **Xbox Cloud Gaming (xCloud)** ou no navegador
 
 ### 🔵 Modo B: Driver Nativo de Sistema (DualSense / IOHIDUserDevice)
 
-Para quem precisa do controle funcionando em jogos instalados fora do navegador (Steam, Ryujinx, RPCS3, Dolphin, RetroArch):
+Para quem precisa do controle funcionando em emuladores e jogos standalone fora do navegador (Ryujinx, RPCS3, Dolphin, RetroArch, etc. — lembrando que a Steam já possui suporte próprio ao GameSir via Steam Input sem requerer este driver):
 
 1. **Compilar e Assinar:**
    ```bash
@@ -66,7 +66,7 @@ Para quem precisa do controle funcionando em jogos instalados fora do navegador 
 
 - 🎮 **Suporte Completo** — GameSir Nova Lite 2.4G, Xbox 360 Wireless & Wired, botões, D-Pad, analógicos, gatilhos analógicos e reconexão automática.
 - 🖥️ **Duas Identidades de Saída**
-  - **Clone DualSense (Padrão)** — Sony DualSense exato (`054c:0ce6`, descritor USB oficial de 273 bytes). Reconhecido nativamente pelo `GameController.framework`, Ajustes do Sistema e jogos da App Store/Steam.
+  - **Clone DualSense (Padrão)** — Sony DualSense exato (`054c:0ce6`, descritor USB oficial de 273 bytes). Reconhecido nativamente pelo `GameController.framework`, Ajustes do Sistema e jogos da Mac App Store.
   - **Gamepad Genérico** (`--identity generic`) — 16 botões + hat + 6 eixos.
 - 🔁 **Vibração (Rumble)** — Saídas HID encaminhadas aos motores do controle.
 - 🪶 **Sem kexts ou DriverKit** — Binário em C leve em espaço de usuário, pronto para `launchd`.

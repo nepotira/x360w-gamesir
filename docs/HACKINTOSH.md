@@ -54,9 +54,10 @@ Uma extensão Manifest V3 para Google Chrome que lê o dongle USB 2.4 GHz do Gam
 
 ---
 
-## 🔵 MODO B: Driver Nativo de Sistema com AMFIPass (Para Hackintosh & Jogos Fora do Navegador)
+## 🔵 MODO B: Driver Nativo de Sistema com AMFIPass (Para Hackintosh & Emuladores)
 > **Compatibilidade:** Hackintosh OpenCore.  
-> **Finalidade:** Jogos fora do navegador (Steam, Ryujinx, RPCS3, Dolphin, RetroArch) que exigem o controle reconhecido como gamepad global no macOS.
+> **Finalidade:** Jogos e emuladores fora do navegador (Ryujinx, RPCS3, Dolphin, RetroArch, OpenEmu) que exigem o controle reconhecido como gamepad global no macOS.  
+> *(Nota: Jogos na Steam já funcionam nativamente com o GameSir Nova Lite através do Steam Input sem precisar deste driver).*
 
 ### O que é?
 Em vez de desativar o AMFI de forma agressiva com `amfi_get_out_of_my_way=1`, o OpenCore utiliza a kext **`AMFIPass.kext` (v1.4.1+)** desenvolvida pela equipe do Dortania/Acidanthera.
@@ -106,7 +107,7 @@ O driver assumirá o dongle USB e instanciará o controle virtual `IOHIDUserDevi
 | **xCloud no Google Chrome** | ✅ Sim | ✅ Sim | ✅ Sim |
 | **Netflix no Google Chrome** | ✅ Sim (1080p) | ✅ Sim (1080p) | ❌ Quebra (M7702-1003) |
 | **Netflix no Safari (iGPU Intel)** | ❌ Falha (S7706) | ❌ Falha (S7706) | ❌ Falha (S7706) |
-| **Jogos Nativos fora do Chrome (Steam)** | ❌ Não | ✅ Sim | ✅ Sim |
+| **Jogos Nativos fora do Chrome (Emuladores / App Store)** | ❌ Não | ✅ Sim | ✅ Sim |
 | **Compatível com Apple Silicon (M1..M4)** | ✅ Sim | ❌ Não (exige kext/SIP off) | ❌ Não |
 | **Exige alterar EFI / OpenCore** | ❌ Não | ✅ Sim | ✅ Sim |
 
@@ -114,4 +115,4 @@ O driver assumirá o dongle USB e instanciará o controle virtual `IOHIDUserDevi
 
 ## 🛠️ Resumo das Decisões
 - Se o seu objetivo principal é jogar **xCloud / Navegador** e assistir **Netflix** na mesma máquina: use o **Modo A**. É a solução mais moderna, não mexe na EFI e é imune a atualizações do macOS.
-- Se você joga **emuladores ou jogos da Steam** fora do navegador: configure o OpenCore conforme o **Modo B** com `AMFIPass.kext`.
+- Se você joga **emuladores ou títulos standalone** fora do navegador: configure o OpenCore conforme o **Modo B** com `AMFIPass.kext`. *(Lembrando que jogos que rodam diretamente pela Steam já possuem suporte nativo próprio ao controle).*
