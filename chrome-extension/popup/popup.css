@@ -12,6 +12,24 @@ body {
   padding: 14px;
 }
 
+body.is-tab {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d1117;
+}
+
+body.is-tab .card {
+  width: 420px;
+  background: #161b22;
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+  border: 1px solid #30363d;
+}
+
 .card {
   display: flex;
   flex-direction: column;
@@ -56,6 +74,12 @@ body {
   line-height: 1.4;
 }
 
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .btn {
   width: 100%;
   padding: 10px;
@@ -76,7 +100,18 @@ body {
   background: #059669;
 }
 
-.btn.primary:active {
+.btn.secondary {
+  background: #21262d;
+  color: #c9d1d9;
+  border: 1px solid #30363d;
+}
+
+.btn.secondary:hover {
+  background: #30363d;
+  color: #f0f6fc;
+}
+
+.btn:active {
   transform: scale(0.98);
 }
 
@@ -103,6 +138,16 @@ body {
 .metric-row .val {
   color: #f9fafb;
   font-family: monospace;
+}
+
+.error-msg {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .footer-note {

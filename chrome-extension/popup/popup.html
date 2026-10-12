@@ -15,11 +15,16 @@
       <span class="badge" id="status-badge">Desconectado</span>
     </div>
 
-    <p class="desc">Ponte WebUSB direta para xCloud sem precisar desativar o AMFI no macOS.</p>
+    <p class="desc" id="status-desc">Ponte WebUSB direta para xCloud no navegador sem precisar de drivers no kernel.</p>
 
-    <button id="btn-connect" class="btn primary">
-      Conectar GameSir (Dongle 2.4G)
-    </button>
+    <div class="actions">
+      <button id="btn-connect" class="btn primary">
+        Conectar GameSir (Dongle 2.4G)
+      </button>
+      <button id="btn-open-tab" class="btn secondary">
+        Abrir Dashboard em Nova Aba
+      </button>
+    </div>
 
     <div class="monitor" id="monitor-box">
       <div class="metric-row">
@@ -44,8 +49,10 @@
       </div>
     </div>
 
+    <div id="error-box" class="error-msg" style="display: none;"></div>
+
     <div class="footer-note">
-      ✅ Compatível com Netflix e Apple Silicon (M1/M2/M3/M4 e Hackintosh).
+      ✅ Compatível com xCloud, GeForce NOW e Gamepad Tester.
     </div>
   </div>
 

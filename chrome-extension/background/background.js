@@ -3,10 +3,13 @@
 
 const FILTERS = [
   { vendorId: 0x3537, productId: 0x1040 }, // GameSir Nova Lite 2.4G (Xbox 360 mode)
+  { vendorId: 0x3537 },                    // Qualquer dispositivo GameSir
   { vendorId: 0x045e, productId: 0x028e }, // Xbox 360 Wired
   { vendorId: 0x045e, productId: 0x0291 }, // Xbox 360 Wireless Receiver
   { vendorId: 0x045e, productId: 0x0719 },
-  { vendorId: 0x045e, productId: 0x02a9 }
+  { vendorId: 0x045e, productId: 0x02a9 },
+  { vendorId: 0x045e },                    // Qualquer dispositivo Microsoft
+  { vendorId: 0x3151 }                     // Dongle GameSir
 ];
 
 let usbDevice = null;
@@ -151,7 +154,7 @@ async function connectUSB() {
   }
   try {
     const devices = await navigator.usb.getDevices();
-    const match = devices.find(d => FILTERS.some(f => f.vendorId === d.vendorId && f.productId === d.productId));
+    const match = devices.find(d => FILTERS.some(f => f.vendorId === d.vendorId && (!f.productId || f.productId === d.productId)));
     if (!match) {
       console.log('[WebUSB Background] Nenhum dispositivo previamente autorizado encontrado.');
       return false;

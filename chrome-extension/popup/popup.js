@@ -1,24 +1,48 @@
-// popup.js — Interface do usuário da extensão
-// Abre diálogo de permissão WebUSB e conecta ao background service worker
+// popup.js — Interface de pareamento e monitoramento WebUSB do GameSir Nova Lite
 
 const FILTERS = [
   { vendorId: 0x3537, productId: 0x1040 }, // GameSir Nova Lite 2.4G (Xbox 360 mode)
+  { vendorId: 0x3537 },                    // Qualquer dispositivo GameSir
   { vendorId: 0x045e, productId: 0x028e }, // Xbox 360 Wired
   { vendorId: 0x045e, productId: 0x0291 }, // Xbox 360 Wireless Receiver
-  { vendorId: 0x045e, productId: 0x0719 },
-  { vendorId: 0x045e, productId: 0x02a9 }
+  { vendorId: 0x045e, productId: 0x0719 }, // Xbox 360 Wireless Receiver Clone
+  { vendorId: 0x045e, productId: 0x02a9 },
+  { vendorId: 0x045e },                    // Qualquer dispositivo Microsoft
+  { vendorId: 0x3151 }                     // Dongle GameSir em modo alternativo
 ];
 
 let isConnected = false;
 let port = null;
 
+const isTab = window.location.search.includes('tab=1') || window.innerWidth > 350;
+if (isTab) {
+  document.body.classList.add('is-tab');
+}
+
 const elBadge = document.getElementById('status-badge');
 const elBtn = document.getElementById('btn-connect');
+const elBtnTab = document.getElementById('btn-open-tab');
 const elDevName = document.getElementById('dev-name');
 const elPackets = document.getElementById('packet-count');
 const elTriggers = document.getElementById('triggers-val');
 const elSticks = document.getElementById('sticks-val');
 const elButtons = document.getElementById('buttons-val');
+const elError = document.getElementById('error-box');
+
+if (isTab && elBtnTab) {
+  elBtnTab.style.display = 'none';
+}
+
+function showError(msg) {
+  if (elError) {
+    if (msg) {
+      elError.textContent = msg;
+      elError.style.display = 'block';
+    } else {
+      elError.style.display = 'none';
+    }
+  }
+}
 
 function updatePadUI(st, packetCount) {
   if (packetCount !== undefined) elPackets.textContent = packetCount;
@@ -56,11 +80,12 @@ function setConnectedState(connected, devName) {
     elDevName.textContent = devName || 'GameSir Nova Lite / Xbox 360';
     elBtn.textContent = 'Desconectar';
     elBtn.className = 'btn';
+    showError(null);
   } else {
     elBadge.textContent = 'Desconectado';
     elBadge.className = 'badge';
     elDevName.textContent = 'Nenhum';
-    elBtn.textContent = 'Conectar GameSir (Dongle 2.4G)';
+    elBtn.textContent = isTab ? 'Parear e Conectar GameSir' : 'Conectar GameSir (Dongle 2.4G)';
     elBtn.className = 'btn primary';
     elButtons.textContent = '-';
   }
@@ -68,7 +93,7 @@ function setConnectedState(connected, devName) {
 
 // Conexão com background service worker
 try {
-  port = chrome.runtime.connect({ name: 'popup-monitor' });
+  port = chrome.runtime.connect({ name: isTab ? 'tab-monitor' : 'popup-monitor' });
   port.onMessage.addListener((msg) => {
     if (msg.type === 'STATUS_UPDATE') {
       setConnectedState(msg.connected, msg.device);
@@ -82,7 +107,15 @@ try {
   console.warn('[Popup] Erro ao conectar ao background:', e);
 }
 
-// Botão de conectar / desconectar
+// Botão de abrir em nova aba
+if (elBtnTab) {
+  elBtnTab.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('popup/popup.html?tab=1') });
+    window.close();
+  });
+}
+
+// Ação do botão principal
 elBtn.addEventListener('click', async () => {
   if (isConnected) {
     chrome.runtime.sendMessage({ type: 'DISCONNECT_DEVICE' }, () => {
@@ -91,19 +124,37 @@ elBtn.addEventListener('click', async () => {
     return;
   }
 
+  // Se estiver na janela suspensa (popup bubble), abrir na aba para evitar que o Chrome feche o popup
+  if (!isTab) {
+    chrome.tabs.create({ url: chrome.runtime.getURL('popup/popup.html?tab=1') });
+    window.close();
+    return;
+  }
+
+  showError(null);
+  elBadge.textContent = 'Selecione o USB...';
+
   try {
-    // navigator.usb.requestDevice exige gesto do usuário (clique no popup)
+    // navigator.usb.requestDevice dentro de uma aba não sofre com perda de foco
     const device = await navigator.usb.requestDevice({ filters: FILTERS });
     if (device) {
       elBadge.textContent = 'Conectando...';
       chrome.runtime.sendMessage({ type: 'DEVICE_PAIRED' }, (res) => {
         if (res && res.connected) {
-          setConnectedState(true, device.productName);
+          setConnectedState(true, device.productName || 'XBOX 360 For Windows');
+        } else {
+          elBadge.textContent = 'Aguardando driver...';
         }
       });
     }
   } catch (err) {
-    console.warn('[Popup] Cancelado ou erro ao selecionar USB:', err);
+    console.warn('[Popup WebUSB] Exceção:', err.name, err.message);
+    if (err.name === 'NotFoundError') {
+      showError('Nenhum dispositivo selecionado na janela.');
+    } else {
+      showError(`Erro WebUSB (${err.name}): ${err.message}`);
+    }
+    setConnectedState(false);
   }
 });
 
